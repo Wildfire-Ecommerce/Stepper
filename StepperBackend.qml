@@ -19,6 +19,7 @@ Item {
             stepCounterBackend.inactivityTime += 10;
             if (stepCounterBackend.inactivityTime > stepCounterBackend.inactivityTimeThreshold) {
                 motionSensor.dataRate = 10; // Decrease the sampling rate
+                inactivityTimer.stop();
             }
         }
     }
@@ -37,24 +38,30 @@ Item {
                                          Math.pow(reading.acceleration.y, 2) +
                                          Math.pow(reading.acceleration.z, 2));
 
-            // Reset inactivity time if there's significant movement
             if (Math.abs(acceleration - previousAcceleration) > stepThreshold) {
                 stepCounterBackend.inactivityTime = 0;
+                if (!inactivityTimer.running) inactivityTimer.start();
                 motionSensor.dataRate = 50; // Increase the sampling rate
             }
 
             // State machine for step detection
-            if (state === "Idle" && acceleration > stepThreshold) {
-                state = "StepStarted";
-            } else if (state === "StepStarted" && acceleration < -stepThreshold) {
-                state = "StepFinished";
-            } else if (state === "StepFinished" && acceleration > -stepThreshold) {
-                state = "Idle";
-                if (!gyroscopeSensor.available || Math.abs(gyroscopeSensor.reading.y) < rotationThreshold) {
-                    if (!heartRateSensor.available || heartRateSensor.reading.bpm > 100) {
-                        stepCounterBackend.stepCount++;
+            switch (state) {
+                case "Idle":
+                    if (acceleration > stepThreshold) state = "StepStarted";
+                    break;
+                case "StepStarted":
+                    if (acceleration < -stepThreshold) state = "StepFinished";
+                    break;
+                case "StepFinished":
+                    if (acceleration > -stepThreshold) {
+                        state = "Idle";
+                        if (!gyroscopeSensor.available || Math.abs(gyroscopeSensor.reading.y) < rotationThreshold) {
+                            if (!heartRateSensor.available || heartRateSensor.reading.bpm > 100) {
+                                stepCounterBackend.stepCount++;
+                            }
+                        }
                     }
-                }
+                    break;
             }
 
             previousAcceleration = acceleration;
