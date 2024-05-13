@@ -42,4 +42,3 @@ This project is licensed under the [MIT License](LICENSE).
 
 - The AsteroidOS community for their valuable resources and support
 - [OpenAI](https://openai.com) for providing the language model used to generate this README template
-
